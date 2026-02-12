@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Roles - Lensa Literasi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #000000;
+            --surface: #000000;
+            --google-blue: #8ab4f8;
+            --text-main: #e8eaed;
+            --text-dim: #9aa0a6;
+            --border: #202124;
+            --skeleton-bg: #121212;
+            --error: #f28b82;
+            --success: #81c995;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0; padding: 15px;
+            -webkit-font-smoothing: antialiased;
+            display: none; /* Sembunyikan body sampai user terverifikasi */
+        }
+
+        .container { max-width: 800px; margin: 0 auto; background: var(--surface); }
+
+        header {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 { font-size: 1.2rem; font-weight: 500; margin: 0; }
+
+        .search-container { margin-bottom: 20px; }
+
+        #searchInput {
+            width: 100%;
+            padding: 12px 16px;
+            background: #121212;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: white;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .table-wrapper { width: 100%; overflow-x: auto; border-radius: 8px; }
+
+        table { width: 100%; border-collapse: collapse; min-width: 320px; }
+
+        th {
+            text-align: left;
+            padding: 12px 8px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        td { padding: 14px 8px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+
+        .email-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        select {
+            background-color: #121212;
+            color: var(--google-blue);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #323336; color: white;
+            padding: 12px 24px; border-radius: 8px;
+            font-size: 0.85rem; display: none; z-index: 1000;
+        }
+
+        #sentinel { height: 60px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Manajemen Akses</h1>
+    </header>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Cari email user..." autocomplete="off">
+    </div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 65%;">Email User</th>
+                    <th style="width: 35%;">Role</th>
+                </tr>
+            </thead>
+            <tbody id="user-table-body"></tbody>
+        </table>
+    </div>
+    
+    <div id="sentinel">Memuat data...</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script type="module">
+    import { supabase } from './supa/supa.js';
+
+    const tableBody = document.getElementById('user-table-body');
+    const toast = document.getElementById('toast');
+    const sentinel = document.getElementById('sentinel');
+    const searchInput = document.getElementById('searchInput');
+    
+    let page = 0;
+    const perPage = 20;
+    let isFetching = false;
+    let hasMore = true;
+    let searchTerm = '';
+
+    const BANNED_EMAIL = 'karyatulissaya@gmail.com';
+
+    // --- LOGIKA AUTO LOGIN ---
+    async function checkUser() {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+            // Jika tidak ada session, langsung lempar ke Google Login
+            await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: window.location.href }
+            });
+        } else {
+            // Jika sudah login, tampilkan halaman dan muat data
+            document.body.style.display = 'block';
+            loadUsers();
+        }
+    }
+
+    async function loadUsers(reset = false) {
+        if (isFetching || (!hasMore && !reset)) return;
+        isFetching = true;
+
+        if (reset) {
+            page = 0;
+            hasMore = true;
+            tableBody.innerHTML = '';
+        }
+
+        let query = supabase
+            .from('accounts')
+            .select('id, email, role')
+            .neq('email', BANNED_EMAIL)
+            .order('email', { ascending: true });
+
+        if (searchTerm) {
+            query = query.ilike('email', `%${searchTerm}%`);
+        }
+
+        const { data, error } = await query.range(page * perPage, (page * perPage) + perPage - 1);
+
+        if (error) {
+            showToast("Error: " + error.message, true);
+            isFetching = false;
+            return;
+        }
+
+        if (data.length < perPage) {
+            hasMore = false;
+            sentinel.innerText = "Semua data dimuat";
+        }
+
+        renderUsers(data);
+        page++;
+        isFetching = false;
+    }
+
+    function renderUsers(users) {
+        users.forEach(user => {
+            const tr = document.createElement('tr');
+            tr.id = `row-${user.id}`;
+            tr.innerHTML = `
+                <td class="email-cell">${user.email || 'N/A'}</td>
+                <td>
+                    <select onchange="window.updateRole('${user.id}', this.value)" id="select-${user.id}">
+                        <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+                        <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                        <option value="kontributor" ${user.role === 'kontributor' ? 'selected' : ''}>Kontributor</option>
+                    </select>
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+    }
+
+    window.updateRole = async (userId, newRole) => {
+        const selectEl = document.getElementById(`select-${userId}`);
+        const oldRole = selectEl.value;
+        selectEl.disabled = true;
+
+        const { data, error } = await supabase
+            .from('accounts')
+            .update({ role: newRole })
+            .eq('id', userId)
+            .select('role');
+
+        if (error) {
+            showToast("Gagal: " + error.message, true);
+            selectEl.value = oldRole;
+        } else if (data && data[0]) {
+            const currentDBRole = data[0].role;
+            if (currentDBRole !== newRole) {
+                showToast("Akses Ditolak!", true);
+                selectEl.value = currentDBRole;
+            } else {
+                showToast("Role diperbarui");
+            }
+        }
+        selectEl.disabled = false;
+    };
+
+    function showToast(msg, isError = false) {
+        toast.innerText = msg;
+        toast.style.color = isError ? 'var(--error)' : 'var(--success)';
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    // Search Logic
+    let searchTimeout;
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            searchTerm = e.target.value;
+            loadUsers(true);
+        }, 500);
+    });
+
+    // Infinite Scroll
+    const scrollObs = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !isFetching && hasMore) loadUsers();
+    }, { rootMargin: '100px' });
+
+    scrollObs.observe(sentinel);
+
+    // JALANKAN CEK LOGIN SAAT START
+    checkUser();
+</script>
+
+</body>
+</html>
