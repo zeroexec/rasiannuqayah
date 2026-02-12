@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lensa Literasi Annuqayah</title>
+    <link rel="icon" type="image/png" href="logo/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root {
+            --emerald-600: #059669;
+            --bg-subtle: #f8fafc;
+            --border-color: #f1f5f9;
+            --text-main: #1a1c1e;
+            --text-muted: #64748b;
+            --danger: #ef4444;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #ffffff;
+            color: var(--text-main);
+            overflow-x: hidden; 
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 650px;
+            margin: 0 auto;
+        }
+
+        .header-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-section h2 {
+            font-size: 1.1rem;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .notif-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .notif-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            border-radius: 16px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .status-pending { background: #fef3c7; color: #d97706; }
+        .status-approved { background: #dcfce7; color: #059669; }
+        .status-rejected { background: #fee2e2; color: #dc2626; }
+
+        .notif-content { flex-grow: 1; padding-right: 30px; }
+
+        .notif-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin: 0 0 4px 0;
+            line-height: 1.4;
+        }
+
+        .notif-msg {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0 0 10px 0;
+            line-height: 1.5;
+        }
+
+        .notif-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .category-tag {
+            background: #ffffff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            color: var(--emerald-600);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-delete {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: #cbd5e1;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-delete:hover {
+            color: var(--danger);
+            background: #fee2e2;
+        }
+
+        /* --- UI COMPONENTS (MODAL & TOAST) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; 
+            align-items: center; justify-content: center; z-index: 3000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-card {
+            background: white; width: 90%; max-width: 380px;
+            padding: 24px; border-radius: 24px; text-align: center;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes modalPop {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-btns { display: flex; gap: 12px; margin-top: 24px; }
+        
+        .btn-confirm {
+            flex: 1; padding: 12px; border-radius: 12px; border: none;
+            background: var(--danger); color: white; font-weight: 600; cursor: pointer;
+        }
+
+        .btn-cancel {
+            flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);
+            background: #f8fafc; color: var(--text-muted); font-weight: 600; cursor: pointer;
+        }
+
+        #toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #1e293b; color: white; padding: 12px 24px;
+            border-radius: 12px; display: none; z-index: 4000; font-size: 0.9rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+        }
+
+        #loading-state, #empty-state { text-align: center; padding: 60px 20px; }
+        
+        .shimmer {
+            height: 100px;
+            background: linear-gradient(90deg, #f1f5f9 25%, #f8fafc 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: shimmer-effect 1.5s infinite;
+            border-radius: 16px;
+            margin-bottom: 12px;
+        }
+
+        @keyframes shimmer-effect {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .deleting { pointer-events: none; opacity: 0.5; filter: grayscale(1); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-section">
+        <div class="header-title">
+            <span class="material-icons-round" style="color: var(--emerald-600);">visibility</span>
+            <h2>Pantau Karya</h2>
+        </div>
+    </div>
+
+    <div id="loading-state">
+        <div class="shimmer"></div>
+        <div class="shimmer"></div>
+    </div>
+
+    <div id="empty-state" style="display: none;">
+        <span class="material-icons-round" style="font-size: 56px; color: #e2e8f0; margin-bottom: 16px;">assignment_late</span>
+        <p style="color: var(--text-muted); margin: 0;">Belum ada pengajuan karya.</p>
+    </div>
+
+    <div class="notif-list" id="notifContainer"></div>
+</div>
+
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-card">
+        <span class="material-icons-round" style="font-size: 48px; color: var(--danger); margin-bottom: 12px;">delete_forever</span>
+        <h3 style="margin: 0 0 8px 0;">Hapus Karya?</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Karya dan file media akan dihapus secara permanen dari galeri Anda.</p>
+        <div class="modal-btns">
+            <button class="btn-cancel" onclick="closeDeleteModal()">Batal</button>
+            <button class="btn-confirm" id="confirmDeleteBtn">Ya, Hapus</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+    import { supabase } from './supa/supa.js';
+
+    let activeDeleteId = null;
+
+    // UI Helper: Toast
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 3000);
+    }
+
+    // Modal Control
+    window.closeDeleteModal = () => {
+        document.getElementById('deleteModal').style.display = 'none';
+        activeDeleteId = null;
+    };
+
+    window.openDeleteModal = (postId) => {
+        activeDeleteId = postId;
+        document.getElementById('deleteModal').style.display = 'flex';
+    };
+
+    function getPathFromUrl(url) {
+        if (!url) return null;
+        try {
+            const parts = url.split('/public/');
+            if (parts.length < 2) return null;
+            const pathSegments = parts[1].split('/');
+            const bucket = pathSegments[0];
+            const filePath = pathSegments.slice(1).join('/');
+            return { bucket, filePath };
+        } catch (e) { return null; }
+    }
+
+    // Proses Delete Sebenarnya
+    document.getElementById('confirmDeleteBtn').onclick = async () => {
+        if (!activeDeleteId) return;
+        const postId = activeDeleteId;
+        closeDeleteModal();
+
+        const element = document.getElementById(`post-${postId}`);
+        element.classList.add('deleting');
+
+        try {
+            const { data: post, error: fetchError } = await supabase
+                .from('posts')
+                .select('media_url, thumbnail_url')
+                .eq('id', postId)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            const media = getPathFromUrl(post.media_url);
+            const thumb = getPathFromUrl(post.thumbnail_url);
+
+            if (media) await supabase.storage.from(media.bucket).remove([media.filePath]);
+            if (thumb) await supabase.storage.from(thumb.bucket).remove([thumb.filePath]);
+
+            const { error: deleteError } = await supabase.from('posts').delete().eq('id', postId);
+            if (deleteError) throw deleteError;
+
+            element.style.opacity = '0';
+            element.style.transform = 'translateX(20px)';
+            setTimeout(() => {
+                element.remove();
+                if (document.querySelectorAll('.notif-item').length === 0) {
+                    document.getElementById('empty-state').style.display = 'block';
+                }
+            }, 300);
+            showToast("Karya berhasil dihapus");
+
+        } catch (err) {
+            element.classList.remove('deleting');
+            showToast("Gagal menghapus karya");
+        }
+    };
+
+    async function loadNotifications() {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data: posts, error } = await supabase
+                .from('posts')
+                .select('id, title, status, created_at, category')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            const container = document.getElementById('notifContainer');
+            const loading = document.getElementById('loading-state');
+            const empty = document.getElementById('empty-state');
+
+            loading.style.display = 'none';
+
+            if (!posts || posts.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+
+            container.innerHTML = posts.map(post => {
+                let config = {
+                    icon: 'hourglass_top',
+                    css: 'status-pending',
+                    msg: 'Karya Anda sedang dalam tahap peninjauan oleh tim kurator.'
+                };
+
+                if (post.status === 'approved') {
+                    config = { icon: 'task_alt', css: 'status-approved', msg: 'Selamat! Karya Anda telah disetujui dan kini resmi diterbitkan.' };
+                } else if (post.status === 'rejected') {
+                    // Update: Pemberitahuan ditolak tanpa alasan mendetail
+                    config = { icon: 'report_gmailerrorred', css: 'status-rejected', msg: 'Mohon maaf, karya Anda kami tolak.' };
+                }
+
+                const date = new Date(post.created_at).toLocaleDateString('id-ID', {
+                    day: 'numeric', month: 'short'
+                });
+
+                return `
+                    <div class="notif-item" id="post-${post.id}">
+                        <button class="btn-delete" onclick="openDeleteModal('${post.id}')" title="Hapus Karya">
+                            <span class="material-icons-round" style="font-size: 20px;">delete_outline</span>
+                        </button>
+                        <div class="icon-box ${config.css}">
+                            <span class="material-icons-round">${config.icon}</span>
+                        </div>
+                        <div class="notif-content">
+                            <h3 class="notif-title">${post.title}</h3>
+                            <p class="notif-msg">${config.msg}</p>
+                            <div class="notif-meta">
+                                <span class="category-tag">${post.category || 'Umum'}</span>
+                                <span style="color: #94a3b8; font-weight:400;">${date}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (err) {
+            showToast("Gagal memuat data");
+        }
+    }
+
+    loadNotifications();
+</script>
+
+</body>
+</html>

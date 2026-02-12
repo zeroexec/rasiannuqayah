@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lensa Literasi Annuqayah</title>
+    <link rel="icon" type="image/png" href="logo/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    
+    <style>
+        :root {
+            --emerald-600: #059669;
+            --md-border: #dadce0;
+        }
+
+        body {
+            margin: 0; font-family: 'Google Sans', sans-serif;
+            background-color: #f8f9fa; color: #202124;
+            padding-top: 20px;
+        }
+
+        /* --- FLOATING BACK BUTTON --- */
+        .btn-back-flat {
+            position: fixed; top: 20px; left: 20px;
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 14px 8px 10px;
+            background: white; border: 1px solid var(--md-border);
+            border-radius: 100px; text-decoration: none; color: #5f6368;
+            z-index: 1000; cursor: pointer; transition: 0.2s;
+        }
+        .btn-back-flat:hover { background: #f1f3f4; }
+
+        .container { max-width: 500px; margin: 0 auto; padding: 20px; box-sizing: border-box; }
+
+        .card {
+            background: white; border-radius: 24px; padding: 24px;
+            border: 1px solid var(--md-border); margin-top: 50px;
+        }
+
+        .upload-area {
+            width: 100%; aspect-ratio: 1/1;
+            border: 2px dashed var(--md-border); border-radius: 16px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; overflow: hidden; position: relative; background: #fafafa;
+            margin-bottom: 20px;
+        }
+
+        .upload-area img {
+            width: 100%; height: 100%; object-fit: cover;
+            position: absolute; top: 0; left: 0; display: none;
+        }
+
+        .input-group { margin-bottom: 16px; }
+        label { display: block; font-size: 0.85rem; font-weight: 500; color: #5f6368; margin-bottom: 8px; }
+
+        input, textarea, select {
+            width: 100%; padding: 12px; border: 1px solid var(--md-border);
+            border-radius: 12px; font-family: inherit; box-sizing: border-box; outline: none;
+            font-size: 0.95rem; background: white;
+        }
+
+        .btn-publish {
+            width: 100%; background: var(--emerald-600); color: white;
+            border: none; padding: 16px; border-radius: 16px;
+            font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 10px;
+        }
+        .btn-publish:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* --- MODAL STYLE --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; 
+            align-items: center; justify-content: center; z-index: 2000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-card {
+            background: white; width: 90%; max-width: 400px;
+            padding: 32px 24px; border-radius: 28px; text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-card .icon-circle {
+            width: 64px; height: 64px; background: #ecfdf5;
+            color: var(--emerald-600); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .modal-card h3 { margin: 0 0 12px; font-size: 1.25rem; color: #202124; }
+        .modal-card p { margin: 0 0 24px; color: #5f6368; line-height: 1.5; font-size: 0.95rem; }
+
+        .btn-modal-primary {
+            background: var(--emerald-600); color: white; border: none;
+            padding: 12px 32px; border-radius: 100px; font-weight: 600;
+            cursor: pointer; font-family: inherit; width: 100%;
+        }
+
+        #toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: #323232; color: white; padding: 12px 24px;
+            border-radius: 25px; display: none; z-index: 3000; font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            text-align: center; min-width: 200px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="btn-back-flat" onclick="history.back()">
+        <span class="material-icons-round">arrow_back</span>
+        <span class="back-text">Kembali</span>
+    </div>
+
+    <div class="container">
+        <h2 style="text-align: center; margin-bottom: 24px; font-weight: 700;">Post Gambar</h2>
+        
+        <div class="card">
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+            
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <img id="imgPreview">
+                <div id="uploadPlaceholder" style="text-align: center; padding: 20px;">
+                    <span class="material-icons-round" style="font-size: 48px; color: var(--emerald-600);">add_a_photo</span>
+                    <p style="margin: 8px 0 0; font-size: 0.9rem; font-weight: 500;">Pilih foto karya</p>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Judul Karya</label>
+                <input type="text" id="gTitle" placeholder="Misal: Kaligrafi Kontemporer">
+            </div>
+
+            <div class="input-group">
+                <label>Kategori</label>
+                <select id="gCategory">
+                    <option value="" disabled selected>Pilih Kategori</option>
+                    <option value="Fotografi">Fotografi (Kamera/HP)</option>
+                    <option value="Desain Grafis">Desain Grafis (Poster/Pamflet)</option>
+                    <option value="Ilustrasi">Ilustrasi (Gambar Tangan/Digital)</option>
+                    <option value="Komik/Manga">Komik/Manga (Strip/Panel)</option>
+                    <option value="Infografis">Infografis (Visual Informasi)</option>
+                    <option value="Kaligrafi Digital">Kaligrafi Digital</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Keterangan</label>
+                <textarea id="gCaption" rows="2" placeholder="Tulis deskripsi singkat..."></textarea>
+            </div>
+
+            <button id="publishBtn" class="btn-publish">Publikasikan Gambar</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-card">
+            <div class="icon-circle">
+                <span class="material-icons-round" style="font-size: 32px;">check_circle</span>
+            </div>
+            <h3>Berhasil Diunggah!</h3>
+            <p>Karya Anda telah berhasil dikirim dan sedang menunggu konfirmasi dari admin sebelum diterbitkan.</p>
+            <button class="btn-modal-primary" onclick="window.location.href='profil.html'">Oke, Mengerti</button>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script type="module">
+        import { supabase } from './supa/supa.js';
+
+        const fileInput = document.getElementById('fileInput');
+        const imgPreview = document.getElementById('imgPreview');
+        const placeholder = document.getElementById('uploadPlaceholder');
+        const publishBtn = document.getElementById('publishBtn');
+        const successModal = document.getElementById('successModal');
+        
+        let finalImageBlob = null;
+        let thumbnailBlob = null;
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg; 
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3500);
+        }
+
+        // Cek Sesi User saat halaman dimuat
+        async function checkSession() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                showToast("Sesi berakhir, mengalihkan ke login...");
+                setTimeout(() => window.location.href = 'login.html', 2000);
+            }
+        }
+        checkSession();
+
+        async function processImage(file) {
+            try {
+                const bitmap = await createImageBitmap(file);
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                let width = bitmap.width;
+                let height = bitmap.height;
+                const maxSide = 1200; 
+
+                if (width > height && width > maxSide) {
+                    height *= maxSide / width; width = maxSide;
+                } else if (height > maxSide) {
+                    width *= maxSide / height; height = maxSide;
+                }
+
+                canvas.width = width; canvas.height = height;
+                ctx.drawImage(bitmap, 0, 0, width, height);
+                finalImageBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.8));
+
+                const thumbSize = 400;
+                canvas.width = thumbSize; canvas.height = thumbSize;
+                const min = Math.min(bitmap.width, bitmap.height);
+                const sx = (bitmap.width - min) / 2;
+                const sy = (bitmap.height - min) / 2;
+
+                ctx.drawImage(bitmap, sx, sy, min, min, 0, 0, thumbSize, thumbSize);
+                thumbnailBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.7));
+
+                imgPreview.src = URL.createObjectURL(finalImageBlob);
+                imgPreview.style.display = 'block';
+                placeholder.style.display = 'none';
+            } catch (err) {
+                showToast("Gagal memproses gambar.");
+            }
+        }
+
+        fileInput.onchange = async (e) => {
+            const [file] = e.target.files;
+            if (file) {
+                if (file.size > 10 * 1024 * 1024) {
+                    showToast("Ukuran file terlalu besar (Maks 10MB)");
+                    fileInput.value = "";
+                    return;
+                }
+                publishBtn.disabled = true;
+                publishBtn.innerText = "Memproses...";
+                await processImage(file);
+                publishBtn.disabled = false;
+                publishBtn.innerText = "Publikasikan Gambar";
+            }
+        };
+
+        publishBtn.onclick = async () => {
+            const title = document.getElementById('gTitle').value.trim();
+            const category = document.getElementById('gCategory').value;
+            const caption = document.getElementById('gCaption').value.trim();
+
+            if (!finalImageBlob) return showToast("Silakan pilih foto karya dulu!");
+            if (!title) return showToast("Judul karya tidak boleh kosong!");
+            if (!category) return showToast("Pilih kategori karya!");
+
+            publishBtn.disabled = true;
+            publishBtn.innerText = "Sedang Mengunggah...";
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    showToast("Sesi berakhir, silakan login kembali.");
+                    return;
+                }
+
+                const timestamp = Date.now();
+                const folderPath = `posts/${user.id}/${timestamp}`;
+
+                // Upload Main Image
+                const { error: errMain } = await supabase.storage
+                    .from('karya-media')
+                    .upload(`${folderPath}_main.jpg`, finalImageBlob, { contentType: 'image/jpeg' });
+                if (errMain) throw errMain;
+
+                // Upload Thumbnail
+                const { error: errThumb } = await supabase.storage
+                    .from('karya-media')
+                    .upload(`${folderPath}_thumb.jpg`, thumbnailBlob, { contentType: 'image/jpeg' });
+                if (errThumb) throw errThumb;
+
+                const { data: urlMain } = supabase.storage.from('karya-media').getPublicUrl(`${folderPath}_main.jpg`);
+                const { data: urlThumb } = supabase.storage.from('karya-media').getPublicUrl(`${folderPath}_thumb.jpg`);
+
+                // Insert to DB
+                const { error: dbError } = await supabase.from('posts').insert([{
+                    user_id: user.id,
+                    title: title,
+                    slug: title.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + timestamp,
+                    type: 'gambar',
+                    category: category,
+                    media_url: urlMain.publicUrl,
+                    thumbnail_url: urlThumb.publicUrl,
+                    body_content: caption, // Menggunakan body_content agar konsisten dengan tabel posts
+                    status: 'pending',
+                    views: 0
+                }]);
+
+                if (dbError) throw dbError;
+
+                successModal.style.display = 'flex';
+
+            } catch (err) {
+                showToast("Error: " + err.message);
+                publishBtn.disabled = false;
+                publishBtn.innerText = "Publikasikan Gambar";
+            }
+        };
+    </script>
+</body>
+</html>

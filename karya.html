@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --emerald: #059669;
+            --spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        body {
+            margin: 0;
+            padding: 2px;
+            background-color: #ffffff;
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+        }
+
+        .grid-item {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            background-color: #f8fafc;
+            cursor: pointer;
+            overflow: hidden;
+            /* Efek muncul awal */
+            opacity: 0;
+            transform: scale(0.9) translateY(10px);
+            transition: transform 0.3s var(--spring), box-shadow 0.3s ease;
+        }
+
+        /* Animasi Masuk (Dopamin Trigger) */
+        .grid-item.show {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            animation: entrance 0.5s var(--spring) forwards;
+        }
+
+        @keyframes entrance {
+            from { opacity: 0; transform: scale(0.8) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .grid-item:hover {
+            z-index: 2;
+            transform: scale(1.02);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .grid-item:active {
+            transform: scale(0.96);
+        }
+
+        .grid-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .grid-item img.loaded {
+            opacity: 1;
+        }
+
+        /* Placeholder Ikon jika gambar null */
+        .no-image-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            color: #94a3b8;
+            gap: 4px;
+        }
+
+        .type-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            color: white;
+            z-index: 1;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .grid-stats {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            color: white;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+            text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+            z-index: 1;
+        }
+
+        .empty-state {
+            grid-column: span 3;
+            text-align: center;
+            padding: 80px 20px;
+            color: #cbd5e1;
+            animation: fadeIn 1s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; } to { opacity: 1; }
+        }
+
+        .skeleton {
+            background: #f1f5f9;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .skeleton::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+</head>
+<body>
+
+    <div class="grid-container" id="grid-container">
+        <div class="grid-item skeleton"></div>
+        <div class="grid-item skeleton"></div>
+        <div class="grid-item skeleton"></div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './supa/supa.js';
+
+        const container = document.getElementById('grid-container');
+
+        async function fetchKarya() {
+            try {
+                // 1. Cek Cache
+                const cachedData = sessionStorage.getItem('profile_feed_cache');
+                if (cachedData) {
+                    renderData(JSON.parse(cachedData), true);
+                    return;
+                }
+
+                // 2. Ambil Session User
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                // 3. Query Supabase
+                const { data: posts, error } = await supabase
+                    .from('posts')
+                    .select('id, thumbnail_url, views, type, title, slug')
+                    .eq('user_id', user.id)
+                    .eq('status', 'published')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                // Simpan ke Cache
+                sessionStorage.setItem('profile_feed_cache', JSON.stringify(posts));
+                
+                renderData(posts);
+
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p style="text-align:center; padding:20px; color:#ef4444;">Gagal memuat konten.</p>';
+            }
+        }
+
+        function renderData(posts, isFromCache = false) {
+            container.innerHTML = ''; 
+
+            if (posts.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="material-icons-round" style="font-size: 56px;">auto_stories</i>
+                        <p style="font-weight: 600; margin-top:12px;">Belum ada karya</p>
+                    </div>`;
+                return;
+            }
+
+            posts.forEach((post, index) => {
+                const div = document.createElement('div');
+                div.className = 'grid-item';
+                
+                // Staggered Animation Delay (Efek candu saat muncul)
+                div.style.animationDelay = `${index * 0.05}s`;
+                
+                div.onclick = () => {
+                    window.parent.location.href = `view_for_profil.html?s=${post.slug || post.id}`;
+                };
+
+                let iconType = post.type === 'video' ? 'play_circle' : (post.type === 'gallery' ? 'collections' : 'article');
+                
+                // Logic Gambar atau Ikon
+                const mediaContent = post.thumbnail_url 
+                    ? `<img data-src="${post.thumbnail_url}" class="lazy-img" alt="${post.title}">`
+                    : `<div class="no-image-placeholder">
+                        <i class="material-icons-round" style="font-size: 28px; opacity:0.5;">${iconType}</i>
+                        <span style="font-size: 9px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">${post.type || 'Karya'}</span>
+                       </div>`;
+
+                div.innerHTML = `
+                    ${mediaContent}
+                    <div class="type-indicator">
+                        <i class="material-icons-round" style="font-size: 18px;">${iconType}</i>
+                    </div>
+                    <div class="grid-stats">
+                        <i class="material-icons-round" style="font-size: 14px;">visibility</i>
+                        ${formatK(post.views || 0)}
+                    </div>
+                `;
+                
+                container.appendChild(div);
+                
+                // Triger animasi muncul
+                setTimeout(() => div.classList.add('show'), 10);
+            });
+
+            initLazyLoad();
+        }
+
+        function initLazyLoad() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.src = img.dataset.src;
+                        img.onload = () => img.classList.add('loaded');
+                        observer.unobserve(img);
+                    }
+                });
+            }, { rootMargin: '50px' });
+
+            document.querySelectorAll('.lazy-img').forEach(img => observer.observe(img));
+        }
+
+        function formatK(num) {
+            if (num >= 1000000) return (num/1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num/1000).toFixed(1) + 'k';
+            return num;
+        }
+
+        fetchKarya();
+    </script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lensa Literasi Annuqayah</title>
+    <link rel="icon" type="image/png" href="logo/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --emerald-dark: #065f46; 
+            --emerald-600: #059669;
+            --text-dark: #1e293b;
+            --bg-light: #f1f5f9;
+        }
+
+        body, html { 
+            margin: 0; padding: 0; height: 100%; 
+            overflow: hidden; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: var(--bg-light);
+        }
+        
+        header {
+            height: 64px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            border-bottom: none; 
+            box-sizing: border-box;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .logo { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            cursor: pointer; 
+            user-select: none;
+            line-height: 1;
+        }
+
+        .logo img { 
+            height: 36px; 
+            width: auto; 
+            display: block; 
+        }
+        
+        .logo span { 
+            font-size: 1.15rem; 
+            font-weight: 800; 
+            color: var(--emerald-dark); 
+            letter-spacing: -0.3px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            margin-bottom: -1px;
+        }
+
+        #auth-ui {
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-login {
+            background: var(--emerald-dark); 
+            color: white; 
+            border: none;
+            padding: 8px 24px; 
+            border-radius: 100px; 
+            font-weight: 700; 
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-login:hover { background: #044e3a; }
+
+        @keyframes pulse-emerald {
+            0% { box-shadow: 0 0 0 0 rgba(6, 95, 70, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(6, 95, 70, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(6, 95, 70, 0); }
+        }
+
+        .profile-circle {
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%; 
+            overflow: hidden;
+            cursor: pointer; 
+            border: 2px solid #e2e8f0;
+            background: #f1f5f9;
+            transition: all 0.2s;
+            animation: pulse-emerald 2s infinite;
+        }
+
+        .profile-circle:hover { 
+            border-color: var(--emerald-dark); 
+            transform: scale(1.1);
+            animation: none; 
+        }
+
+        .profile-circle img { width: 100%; height: 100%; object-fit: cover; }
+
+        #main-frame {
+            width: 100%;
+            height: calc(100% - 64px);
+            margin-top: 64px;
+            border: none;
+            background-color: #f1f5f9;
+        }
+
+        @media (max-width: 600px) {
+            .logo span { font-size: 0.95rem; }
+            .logo img { height: 32px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo" onclick="document.getElementById('main-frame').src='beranda.html'">
+            <img src="logo/logo.png" alt="Logo">
+            <span>Lensa Literasi Annuqayah</span>
+        </div>
+
+        <div id="auth-ui"></div>
+    </header>
+
+    <iframe src="beranda.html" id="main-frame"></iframe>
+
+    <script type="module">
+        import { supabase } from './supa/supa.js';
+
+        const authUI = document.getElementById('auth-ui');
+        const mainFrame = document.getElementById('main-frame');
+
+        async function checkUser() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (user) {
+                    const name = user.user_metadata?.full_name || user.email;
+                    const avatar = user.user_metadata?.avatar_url || 
+                                   `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=065f46&color=fff`;
+                    
+                    authUI.innerHTML = `
+                        <div class="profile-circle" title="Profil Saya" id="btn-profile">
+                            <img src="${avatar}" alt="Avatar">
+                        </div>
+                    `;
+
+                    // Mengarahkan window utama ke profil.html (bukan iframe)
+                    document.getElementById('btn-profile').onclick = () => {
+                        window.location.href = 'profil.html';
+                    };
+
+                } else {
+                    authUI.innerHTML = `
+                        <button class="btn-login" id="btn-login-trigger">Masuk</button>
+                    `;
+                    
+                    // Mengarahkan window utama ke login.html
+                    document.getElementById('btn-login-trigger').onclick = () => {
+                        window.location.href = 'login.html';
+                    };
+                }
+            } catch (err) {
+                console.error("Auth Error:", err);
+            }
+        }
+
+        checkUser();
+
+        supabase.auth.onAuthStateChange((event) => {
+            if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+                checkUser();
+            }
+        });
+    </script>
+</body>
+</html>

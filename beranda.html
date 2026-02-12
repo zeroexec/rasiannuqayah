@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lensa Literasi Annuqayah</title>
+    <link rel="icon" type="image/png" href="logo/logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        :root {
+            --emerald-600: #059669;
+            --bg-body: #f8fafc;
+            --skeleton: #e2e8f0;
+            --skeleton-shine: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg-body); }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        body {
+            margin: 0; padding: 12px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-body);
+            color: #1e293b;
+        }
+        .masonry-wrapper {
+            column-count: 2; column-gap: 12px;
+            max-width: 1200px; margin: 0 auto;
+        }
+        @media (min-width: 768px) { .masonry-wrapper { column-count: 3; } }
+        @media (min-width: 1024px) { .masonry-wrapper { column-count: 4; } }
+        .post-card {
+            display: block; width: 100%; margin-bottom: 16px; 
+            background: white; border-radius: 20px;
+            overflow: hidden; border: 1px solid #f1f5f9;
+            break-inside: avoid;
+            content-visibility: auto;
+            contain-intrinsic-size: 1px 250px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .post-card:active { transform: scale(0.98); }
+        .media-box { 
+            position: relative; width: 100%; 
+            background: var(--skeleton); min-height: 140px; 
+        }
+        .media-box img { 
+            width: 100%; height: auto; display: block; 
+            opacity: 0; transition: opacity 0.3s ease; 
+        }
+        .media-box img.loaded { opacity: 1; }
+        .card-info { padding: 14px; }
+        .tag-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+        .tag { 
+            font-size: 0.6rem; font-weight: 800; padding: 3px 8px; 
+            border-radius: 6px; text-transform: uppercase;
+        }
+        .tag-type { background: #e0f2fe; color: #0369a1; }
+        .tag-cat { background: #f1f5f9; color: #475569; }
+        .tag-lang { background: #fef2f2; color: #991b1b; }
+        .card-title { font-size: 0.9rem; font-weight: 800; margin: 0 0 10px 0; line-height: 1.4; }
+        .stats-row { 
+            display: flex; align-items: center; gap: 12px; 
+            font-size: 0.7rem; color: #94a3b8; font-weight: 700;
+            margin-bottom: 12px;
+            padding: 2px 0;
+        }
+        .stats-item { display: flex; align-items: center; gap: 4px; }
+        .stats-item i { font-size: 14px; }
+        .author { 
+            display: flex; align-items: center; gap: 8px; 
+            border-top: 1px solid #f8fafc; padding-top: 10px; 
+        }
+        .author img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+        .skeleton {
+            background: var(--skeleton);
+            background-image: var(--skeleton-shine);
+            background-size: 200% 100%;
+            animation: shine 1.5s infinite linear;
+        }
+        @keyframes shine { to { background-position-x: -200%; } }
+        #sentinel { padding: 30px 0; text-align: center; color: #94a3b8; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+    <div class="masonry-wrapper" id="feed-container"></div>
+    <div id="sentinel"><div id="status">Mengambil data...</div></div>
+    <template id="skel-tmp">
+        <div class="post-card skel-item">
+            <div class="media-box skeleton"></div>
+            <div class="card-info">
+                <div class="skeleton" style="width:50%; height:10px; margin-bottom:10px; border-radius:4px"></div>
+                <div class="skeleton" style="width:90%; height:16px; margin-bottom:10px; border-radius:4px"></div>
+                <div class="skeleton" style="width:100%; height:12px; margin-bottom:12px; border-radius:4px"></div>
+                <div class="author"><div class="skeleton" style="width:22px; height:22px; border-radius:50%"></div></div>
+            </div>
+        </div>
+    </template>
+    <script type="module">
+        import { supabase } from './supa/supa.js';
+        const container = document.getElementById('feed-container');
+        const statusMsg = document.getElementById('status');
+        const skelTemplate = document.getElementById('skel-tmp');
+        let page = 0;
+        const perPage = 10;
+        let isFetching = false;
+        let hasMore = true;
+        async function fetchPosts(isInitial = false) {
+            if (isFetching || !hasMore) return;
+            isFetching = true;
+            for(let i=0; i<4; i++) container.appendChild(skelTemplate.content.cloneNode(true));
+            try {
+                const { data, error } = await supabase
+                    .from('posts')
+                    .select(`
+                        id, title, slug, type, category, language, views, 
+                        thumbnail_url, media_url,
+                        author:user_id ( full_name, avatar_url ),
+                        likes:reactions(count),
+                        unlikes:reactions(count),
+                        comments:comments(count)
+                    `)
+                    .eq('status', 'published')
+                    .eq('likes.vote_type', 'like')
+                    .eq('unlikes.vote_type', 'unlike')
+                    .order('created_at', { ascending: false })
+                    .range(page * perPage, (page * perPage) + perPage - 1);
+                container.querySelectorAll('.skel-item').forEach(s => s.remove());
+                if (error) throw error;
+                if (!data || data.length < perPage) {
+                    hasMore = false;
+                    statusMsg.innerText = "Sudah di penghujung literasi.";
+                }
+                render(data);
+                page++;
+            } catch (err) {
+                console.error(err);
+                statusMsg.innerText = "Koneksi terputus...";
+            } finally {
+                isFetching = false;
+            }
+        }
+        function render(posts) {
+            posts.forEach(post => {
+                if(document.querySelector(`[data-id="${post.id}"]`)) return;
+                const thumb = post.thumbnail_url || post.media_url;
+                const author = post.author || {};
+                const likeCount = post.likes?.[0]?.count || 0;
+                const unlikeCount = post.unlikes?.[0]?.count || 0;
+                const commentCount = post.comments?.[0]?.count || 0;
+                const card = document.createElement('div');
+                card.className = 'post-card';
+                card.dataset.id = post.id;
+                const mediaHTML = thumb 
+                    ? `<div class="media-box"><img data-src="${thumb}" class="lazy-load" alt="thumbnail"></div>` 
+                    : '';
+                card.innerHTML = `
+                    ${mediaHTML}
+                    <div class="card-info">
+                        <div class="tag-row">
+                            <span class="tag tag-type">${post.type}</span>
+                            <span class="tag tag-cat">${post.category}</span>
+                            ${post.language ? `<span class="tag tag-lang">${post.language}</span>` : ''}
+                        </div>
+                        <h2 class="card-title">${post.title}</h2>
+                        <div class="stats-row">
+                            <div class="stats-item" title="Dilihat">
+                                <i class="material-icons-round">visibility</i> 
+                                ${post.views || 0}
+                            </div>
+                            <div class="stats-item" title="Suka">
+                                <i class="material-icons-round">thumb_up</i> 
+                                ${likeCount}
+                            </div>
+                            <div class="stats-item" title="Tidak Suka">
+                                <i class="material-icons-round">thumb_down</i> 
+                                ${unlikeCount}
+                            </div>
+                            <div class="stats-item" title="Komentar">
+                                <i class="material-icons-round">chat_bubble</i> 
+                                ${commentCount}
+                            </div>
+                        </div>
+                        <div class="author">
+                            <img src="${author.avatar_url || `https://ui-avatars.com/api/?name=${author.full_name || 'S'}&background=059669&color=fff`}" loading="lazy">
+                            <span style="font-size: 0.7rem; font-weight: 700; color: #64748b">${author.full_name || 'Kontributor'}</span>
+                        </div>
+                    </div>`;
+                card.onclick = () => window.parent.location.href = `view.html?s=${post.slug || post.id}`;
+                container.appendChild(card);
+            });
+            initLazyLoading();
+        }
+        function initLazyLoading() {
+            const imageObs = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.src = img.dataset.src;
+                        img.onload = () => img.classList.add('loaded');
+                        imageObs.unobserve(img);
+                    }
+                });
+            }, { rootMargin: '200px' });
+            document.querySelectorAll('.lazy-load:not(.loaded)').forEach(img => imageObs.observe(img));
+        }
+        const scrollObs = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && hasMore && !isFetching) fetchPosts();
+        }, { rootMargin: '600px' });
+        scrollObs.observe(document.getElementById('sentinel'));
+        fetchPosts(true);
+    </script>
+</body>
+</html>

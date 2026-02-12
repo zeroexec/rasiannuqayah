@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lensa Literasi Annuqayah</title>
+    <link rel="icon" type="image/png" href="logo/logo.png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    
+    <style>
+        :root {
+            --emerald-600: #059669;
+            --surface: #fefcfb;
+            --error: #dc2626;
+        }
+
+        body {
+            margin: 0; font-family: 'Google Sans', sans-serif;
+            background-color: var(--surface);
+            display: flex; justify-content: center;
+        }
+
+        .container {
+            width: 100%; max-width: 500px;
+            background: white; min-height: 100vh;
+            padding: 20px; box-sizing: border-box;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        .header {
+            display: flex; align-items: center; gap: 16px;
+            margin-bottom: 24px; position: sticky; top: 0;
+            background: white; padding: 10px 0; z-index: 10;
+        }
+
+        .btn-back { cursor: pointer; color: #444; }
+
+        /* Toast Styles */
+        #toast {
+            position: fixed; bottom: 30px; left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #323232; color: white;
+            padding: 12px 24px; border-radius: 50px;
+            font-size: 0.9rem; z-index: 1000;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            white-space: nowrap;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+        #toast.error { background: var(--error); }
+
+        .photo-section {
+            display: flex; flex-direction: column; align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .avatar-preview {
+            width: 110px; height: 110px;
+            border-radius: 50%; object-fit: cover;
+            border: 3px solid var(--emerald-600);
+            padding: 3px; background: #f0f0f0;
+        }
+
+        .btn-change-photo {
+            color: var(--emerald-600); font-size: 0.9rem;
+            font-weight: 600; margin-top: 10px; cursor: pointer;
+        }
+
+        .form-section-title {
+            font-size: 0.85rem; font-weight: 700; color: var(--emerald-600);
+            text-transform: uppercase; margin: 24px 0 12px 4px;
+            letter-spacing: 1px;
+        }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 0.8rem; color: #666;
+            margin-bottom: 6px; margin-left: 4px;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%; padding: 12px 14px;
+            border: 1px solid #dadce0; border-radius: 12px;
+            font-family: inherit; font-size: 0.95rem;
+            box-sizing: border-box; outline: none;
+            transition: 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--emerald-600);
+            background-color: #f0fff9;
+        }
+
+        .btn-save {
+            width: 100%; background: var(--emerald-600);
+            color: white; border: none; padding: 16px;
+            border-radius: 100px; font-weight: 700;
+            font-size: 1rem; cursor: pointer;
+            margin: 40px 0; transition: 0.3s;
+        }
+
+        .btn-save:disabled { background: #ccc; cursor: not-allowed; }
+        #file-input { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div class="container">
+    <div class="header">
+        <span class="material-icons-round btn-back" onclick="history.back()">arrow_back</span>
+        <h1 style="font-size: 1.2rem; margin: 0;">Edit Profil</h1>
+    </div>
+
+    <div class="photo-section">
+        <img id="img-preview" src="" class="avatar-preview">
+        <label for="file-input" class="btn-change-photo">Ubah Foto Profil</label>
+        <input type="file" id="file-input" accept="image/*">
+    </div>
+
+    <form id="edit-form">
+        <div class="form-section-title">Informasi Dasar</div>
+        <div class="form-group">
+            <label>Nama Lengkap *</label>
+            <input type="text" id="full_name" required>
+        </div>
+        <div class="form-group">
+            <label>Username *</label>
+            <input type="text" id="username" required>
+        </div>
+        <div class="form-group">
+            <label>Bio</label>
+            <textarea id="bio" rows="2" placeholder="Tuliskan sedikit tentang dirimu..."></textarea>
+        </div>
+
+        <div class="form-section-title">Data Santri</div>
+        <div class="form-group">
+            <label>Tipe User</label>
+            <select id="user_type">
+                <option value="Santri Annuqayah">Santri Annuqayah</option>
+                <option value="Alumni">Alumni</option>
+                <option value="Santri Luar">Santri Luar</option>
+                <option value="Umum">Umum</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Wilayah Annuqayah</label>
+            <input type="text" id="wilayah_annuqayah" placeholder="Misal: Lubangsa, Latee, dsb.">
+        </div>
+        <div class="form-group">
+            <label>Instansi Asal</label>
+            <input type="text" id="instansi_asal" placeholder="Misal: MA 1 Annuqayah">
+        </div>
+        <div class="form-group">
+            <label>Domisili</label>
+            <input type="text" id="domisili" placeholder="Asal Daerah">
+        </div>
+        <div class="form-group">
+            <label>Angkatan</label>
+            <input type="number" id="angkatan" placeholder="Tahun Masuk">
+        </div>
+
+        <div class="form-section-title">Media Sosial</div>
+        <div class="form-group">
+            <label>Nomor WhatsApp</label>
+            <input type="text" id="whatsapp" placeholder="628xxxx">
+        </div>
+        <div class="form-group">
+            <label>Link Instagram</label>
+            <input type="url" id="instagram_url" placeholder="https://instagram.com/user">
+        </div>
+
+        <input type="hidden" id="old_avatar_url">
+        <input type="hidden" id="role">
+        <input type="hidden" id="status_akun">
+
+        <button type="submit" id="btn-submit" class="btn-save">Simpan Perubahan</button>
+    </form>
+</div>
+
+<script type="module">
+    import { supabase } from './supa/supa.js';
+
+    let currentUser = null;
+    let selectedFile = null;
+
+    // Toast UI Helper
+    function showToast(message, isError = false) {
+        const toast = document.getElementById('toast');
+        toast.innerText = message;
+        toast.className = isError ? 'show error' : 'show';
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+
+    function getFileNameFromUrl(url) {
+        if (!url || !url.includes('avatars/')) return null;
+        return url.split('avatars/').pop();
+    }
+
+    async function loadInitialData() {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return window.location.href = 'login.html';
+        currentUser = user;
+
+        const { data: profile } = await supabase
+            .from('accounts')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (profile) {
+            document.getElementById('full_name').value = profile.full_name || '';
+            document.getElementById('username').value = profile.username || '';
+            document.getElementById('bio').value = profile.bio || '';
+            document.getElementById('user_type').value = profile.user_type || 'Santri Annuqayah';
+            document.getElementById('wilayah_annuqayah').value = profile.wilayah_annuqayah || '';
+            document.getElementById('instansi_asal').value = profile.instansi_asal || '';
+            document.getElementById('domisili').value = profile.domisili || '';
+            document.getElementById('angkatan').value = profile.angkatan || '';
+            document.getElementById('whatsapp').value = profile.whatsapp || '';
+            document.getElementById('instagram_url').value = profile.instagram_url || '';
+            document.getElementById('role').value = profile.role || 'User';
+            document.getElementById('status_akun').value = profile.status_akun || 'Aktif';
+            document.getElementById('old_avatar_url').value = profile.avatar_url || '';
+            
+            const avatarPreview = document.getElementById('img-preview');
+            avatarPreview.src = profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.full_name}&background=eee`;
+        }
+    }
+
+    document.getElementById('file-input').onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                showToast("Ukuran foto maksimal 2MB", true);
+                return;
+            }
+            selectedFile = file;
+            document.getElementById('img-preview').src = URL.createObjectURL(file);
+        }
+    };
+
+    document.getElementById('edit-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btn-submit');
+        btn.disabled = true;
+        btn.innerText = "Proses Menyimpan...";
+
+        try {
+            let finalAvatarUrl = document.getElementById('old_avatar_url').value;
+
+            if (selectedFile) {
+                const oldUrl = document.getElementById('old_avatar_url').value;
+                const oldFileName = getFileNameFromUrl(oldUrl);
+                
+                if (oldFileName) {
+                    await supabase.storage.from('avatars').remove([oldFileName]);
+                }
+
+                const fileExt = selectedFile.name.split('.').pop();
+                const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(fileName, selectedFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: urlData } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(fileName);
+                
+                finalAvatarUrl = urlData.publicUrl;
+            }
+
+            const updates = {
+                id: currentUser.id,
+                full_name: document.getElementById('full_name').value,
+                username: document.getElementById('username').value.toLowerCase().trim(),
+                bio: document.getElementById('bio').value,
+                user_type: document.getElementById('user_type').value,
+                wilayah_annuqayah: document.getElementById('wilayah_annuqayah').value,
+                instansi_asal: document.getElementById('instansi_asal').value,
+                domisili: document.getElementById('domisili').value,
+                angkatan: parseInt(document.getElementById('angkatan').value) || null,
+                whatsapp: document.getElementById('whatsapp').value,
+                instagram_url: document.getElementById('instagram_url').value,
+                avatar_url: finalAvatarUrl,
+                role: document.getElementById('role').value,
+                status_akun: document.getElementById('status_akun').value,
+                updated_at: new Date()
+            };
+
+            const { error: updateError } = await supabase
+                .from('accounts')
+                .upsert(updates);
+
+            if (updateError) throw updateError;
+
+            showToast("Profil berhasil diperbarui!");
+            
+            // Beri jeda sedikit agar user bisa membaca toast sebelum pindah
+            setTimeout(() => {
+                window.location.href = 'profil.html';
+            }, 1000);
+
+        } catch (err) {
+            console.error(err);
+            showToast("Gagal: " + err.message, true);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Simpan Perubahan";
+        }
+    };
+
+    loadInitialData();
+</script>
+</body>
+</html>

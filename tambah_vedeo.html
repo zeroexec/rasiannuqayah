@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lensa Literasi Annuqayah</title>
+    <link rel="icon" type="image/png" href="logo/logo.png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    
+    <style>
+        :root {
+            --emerald-600: #059669;
+            --md-border: #dadce0;
+        }
+
+        body {
+            margin: 0; font-family: 'Google Sans', sans-serif;
+            background-color: #f8f9fa; color: #202124;
+            padding-top: 20px;
+        }
+
+        /* --- FLOATING BACK BUTTON --- */
+        .btn-back-flat {
+            position: fixed; top: 20px; left: 20px;
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 14px 8px 10px;
+            background: white; border: 1px solid var(--md-border);
+            border-radius: 100px; text-decoration: none; color: #5f6368;
+            z-index: 1000; cursor: pointer; transition: 0.2s;
+        }
+        .btn-back-flat:hover { background: #f1f3f4; }
+
+        .container { max-width: 500px; margin: 0 auto; padding: 20px; box-sizing: border-box; }
+
+        .card {
+            background: white; border-radius: 24px; padding: 24px;
+            border: 1px solid var(--md-border); margin-top: 50px;
+        }
+
+        /* Preview Area */
+        .video-preview {
+            width: 100%; aspect-ratio: 16/9; background: #fafafa;
+            border: 1px solid var(--md-border); border-radius: 16px;
+            margin-top: 8px; display: flex;
+            align-items: center; justify-content: center; color: #888;
+            overflow: hidden; position: relative;
+        }
+
+        .input-group { margin-bottom: 16px; }
+        label { display: block; font-size: 0.85rem; font-weight: 500; color: #5f6368; margin-bottom: 8px; }
+
+        input, textarea, select {
+            width: 100%; padding: 12px; border: 1px solid var(--md-border);
+            border-radius: 12px; font-family: inherit; box-sizing: border-box; outline: none;
+            font-size: 0.95rem; background: white;
+        }
+
+        .btn-publish {
+            width: 100%; background: var(--emerald-600); color: white;
+            border: none; padding: 16px; border-radius: 16px;
+            font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 10px;
+        }
+        .btn-publish:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* --- MODAL STYLE --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; 
+            align-items: center; justify-content: center; z-index: 2000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-card {
+            background: white; width: 90%; max-width: 400px;
+            padding: 32px 24px; border-radius: 28px; text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-card .icon-circle {
+            width: 64px; height: 64px; background: #ecfdf5;
+            color: var(--emerald-600); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .modal-card h3 { margin: 0 0 12px; font-size: 1.25rem; color: #202124; }
+        .modal-card p { margin: 0 0 24px; color: #5f6368; line-height: 1.5; font-size: 0.95rem; }
+
+        .btn-modal-primary {
+            background: var(--emerald-600); color: white; border: none;
+            padding: 12px 32px; border-radius: 100px; font-weight: 600;
+            cursor: pointer; font-family: inherit; width: 100%;
+        }
+
+        #toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: #323232; color: white; padding: 12px 24px;
+            border-radius: 25px; display: none; z-index: 3000; font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            text-align: center; min-width: 200px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="btn-back-flat" onclick="history.back()">
+        <span class="material-icons-round">arrow_back</span>
+        <span class="back-text">Kembali</span>
+    </div>
+
+    <div class="container">
+        <h2 style="text-align: center; margin-bottom: 24px; font-weight: 700;">Post Video</h2>
+        
+        <div class="card">
+            <div class="input-group">
+                <label>Judul Video</label>
+                <input type="text" id="vTitle" placeholder="Misal: Perjalanan Santri Menuntut Ilmu">
+            </div>
+
+            <div class="input-group">
+                <label>Link Video (YouTube)</label>
+                <input type="url" id="vUrl" placeholder="https://www.youtube.com/watch?v=..." oninput="updatePreview()">
+                <div class="video-preview" id="previewBox">
+                    <span id="previewText">Preview video akan muncul di sini</span>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Kategori</label>
+                <select id="vCategory">
+                    <option value="" disabled selected>Pilih Kategori</option>
+                    <option value="Cinematic">Cinematic (Estetika & Pesan Visual)</option>
+                    <option value="Dokumenter">Dokumenter (Peristiwa & Tokoh)</option>
+                    <option value="Vlog">Vlog (Catatan Harian/Suasana)</option>
+                    <option value="Tutorial">Tutorial (Edukasi & Panduan)</option>
+                    <option value="Short Movie">Short Movie (Film Pendek/Drama)</option>
+                    <option value="Podcast">Podcast (Diskusi & Wawancara)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Keterangan</label>
+                <textarea id="vCaption" rows="2" placeholder="Tulis deskripsi singkat video ini..."></textarea>
+            </div>
+
+            <button id="publishBtn" class="btn-publish">Publikasikan Video</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-card">
+            <div class="icon-circle">
+                <span class="material-icons-round" style="font-size: 32px;">check_circle</span>
+            </div>
+            <h3>Berhasil Diunggah!</h3>
+            <p>Video Anda telah berhasil dikirim dan sedang menunggu konfirmasi dari admin sebelum diterbitkan.</p>
+            <button class="btn-modal-primary" onclick="window.location.href='profil.html'">Oke, Mengerti</button>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script type="module">
+        import { supabase } from './supa/supa.js';
+
+        // Fungsi Ambil ID Youtube
+        function getYoutubeId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // Fungsi Preview
+        window.updatePreview = () => {
+            const url = document.getElementById('vUrl').value.trim();
+            const box = document.getElementById('previewBox');
+            const vidId = getYoutubeId(url);
+            
+            if (vidId) {
+                box.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${vidId}" frameborder="0" allowfullscreen></iframe>`;
+            } else if (url === "") {
+                box.innerHTML = `<span>Preview video akan muncul di sini</span>`;
+            } else {
+                box.innerHTML = `<div style="padding:10px; text-align:center; font-size:0.8rem; color:#d93025;">Link tidak valid. Pastikan menggunakan link YouTube.</div>`;
+            }
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg; 
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3500);
+        }
+
+        // Cek Sesi User
+        async function checkSession() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                showToast("Sesi berakhir, mengalihkan ke login...");
+                setTimeout(() => window.location.href = 'login.html', 2000);
+            }
+        }
+        checkSession();
+
+        document.getElementById('publishBtn').onclick = async () => {
+            const title = document.getElementById('vTitle').value.trim();
+            const url = document.getElementById('vUrl').value.trim();
+            const category = document.getElementById('vCategory').value;
+            const caption = document.getElementById('vCaption').value.trim();
+            const btn = document.getElementById('publishBtn');
+
+            if (!title) return showToast("Judul wajib diisi!");
+            if (!url) return showToast("Link YouTube wajib diisi!");
+            if (!category) return showToast("Pilih kategori video!");
+            
+            const vidId = getYoutubeId(url);
+            if (!vidId) return showToast("Link YouTube tidak valid!");
+
+            btn.disabled = true;
+            btn.innerText = "Memproses...";
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error("Sesi berakhir, silakan login kembali.");
+
+                const postData = {
+                    user_id: user.id,
+                    title: title,
+                    slug: title.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now(),
+                    type: 'video',
+                    category: category,
+                    media_url: url,
+                    thumbnail_url: `https://img.youtube.com/vi/${vidId}/mqdefault.jpg`,
+                    body_content: caption, // Menggunakan body_content agar seragam dengan tabel posts
+                    status: 'pending',
+                    views: 0
+                };
+
+                const { error } = await supabase.from('posts').insert([postData]);
+                if (error) throw error;
+
+                // Tampilkan Modal Sukses
+                document.getElementById('successModal').style.display = 'flex';
+
+            } catch (err) {
+                showToast("Gagal: " + err.message);
+                btn.disabled = false;
+                btn.innerText = "Publikasikan Video";
+            }
+        };
+    </script>
+</body>
+</html>
