@@ -126,10 +126,14 @@
             googleBtn.disabled = true;
             googleBtn.style.opacity = '0.6';
             try {
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const redirectTarget = isLocal 
+                    ? window.location.origin + '/index.html'
+                    : 'https://rasiannuqayah.vercel.app/index.html';
                 const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
-                        redirectTo: 'https://rasiannuqayah.vercel.app/index.html'
+                        redirectTo: redirectTarget
                     }
                 });
                 if (error) throw error;
@@ -143,4 +147,3 @@
     </script>
 </body>
 </html>
-
